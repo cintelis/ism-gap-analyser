@@ -9,7 +9,7 @@ import { exportGapReport, exportCSV, exportJSON } from "./lib/export.js";
 import { buildSamplePrevious } from "./lib/sample.js";
 import { Header } from "./components/Header.jsx";
 import { Footer } from "./components/Footer.jsx";
-import { ClassificationPicker } from "./components/ClassificationPicker.jsx";
+import { ClassificationBanner } from "./components/ClassificationBanner.jsx";
 import { UploadPanel } from "./components/UploadPanel.jsx";
 import { VersionBanner } from "./components/VersionBanner.jsx";
 import { StatsGrid } from "./components/StatsGrid.jsx";
@@ -20,7 +20,6 @@ import { Spinner } from "./components/Spinner.jsx";
 import { PrintStyles } from "./components/PrintStyles.jsx";
 
 export default function ISMGapAnalyser() {
-  const [classification, setClassification] = usePersistedState("classification", "PROTECTED");
   const [filterMode, setFilterMode] = usePersistedState("filterMode", "all");
   const [expandedIds, setExpandedIds] = usePersistedSet("expandedIds");
   const [searchTerm, setSearchTerm] = useState("");
@@ -29,7 +28,7 @@ export default function ISMGapAnalyser() {
   const [previousJson, setPreviousJson] = useState(null);
   const [uploadError, setUploadError] = useState(null);
 
-  const { currentData, loading, error, loadingMessage, cacheStatus } = useCurrentISM(classification);
+  const { currentData, loading, error, loadingMessage, cacheStatus } = useCurrentISM();
   const analysis = useGapAnalysis(currentData, previousData);
 
   const handleFileUpload = useCallback((e) => {
@@ -77,7 +76,9 @@ export default function ISMGapAnalyser() {
     if (!analysis) return;
     const allIds = new Set();
     analysis.groups.forEach((g) => {
-      [...g.new, ...g.removed, ...g.unchanged].forEach((c) => allIds.add(c.id));
+      [...g.new, ...g.removed, ...(g.modified ?? []), ...g.unchanged].forEach((c) =>
+        allIds.add(c.id)
+      );
     });
     setExpandedIds(allIds);
   }, [analysis, setExpandedIds]);
@@ -143,7 +144,7 @@ export default function ISMGapAnalyser() {
       <Header />
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 32px" }}>
-        <ClassificationPicker classification={classification} onChange={setClassification} />
+        <ClassificationBanner />
 
         <UploadPanel
           previousJson={previousJson}
@@ -193,9 +194,9 @@ export default function ISMGapAnalyser() {
               onFilterChange={setFilterMode}
               onExpandAll={expandAll}
               onCollapseAll={collapseAll}
-              onExportTxt={() => exportGapReport(analysis, classification, currentData, previousData)}
-              onExportCsv={() => exportCSV(analysis, classification)}
-              onExportJson={() => exportJSON(analysis, classification, currentData, previousData)}
+              onExportTxt={() => exportGapReport(analysis, currentData, previousData)}
+              onExportCsv={() => exportCSV(analysis)}
+              onExportJson={() => exportJSON(analysis, currentData, previousData)}
               onPrint={printReport}
             />
 

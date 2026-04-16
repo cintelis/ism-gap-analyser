@@ -7,6 +7,7 @@ beforeEach(() => {
     Promise.resolve({
       ok: true,
       status: 200,
+      headers: { get: () => null },
       json: () =>
         Promise.resolve({
           catalog: { metadata: { version: "test" }, groups: [], controls: [] },
@@ -16,9 +17,10 @@ beforeEach(() => {
 });
 
 describe("<ISMGapAnalyser />", () => {
-  it("renders the header and classification picker", async () => {
+  it("renders the header and fixed PROTECTED classification banner", async () => {
     render(<ISMGapAnalyser />);
     expect(screen.getByRole("heading", { name: /ISM Gap Analyser/i })).toBeInTheDocument();
-    expect(await screen.findByRole("radio", { name: /PROTECTED/i })).toBeInTheDocument();
+    expect(screen.getByText(/IRAP baseline/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/PROTECTED/).length).toBeGreaterThan(0);
   });
 });

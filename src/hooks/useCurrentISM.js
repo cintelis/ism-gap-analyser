@@ -2,22 +2,22 @@ import { useState, useCallback, useEffect } from "react";
 import { cacheGet, cachePut, isFresh } from "../lib/idbCache.js";
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1h
+const URL = "/api/ism/PROTECTED";
 
-export function useCurrentISM(classification) {
+export function useCurrentISM() {
   const [currentData, setCurrentData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [loadingMessage, setLoadingMessage] = useState("");
-  const [cacheStatus, setCacheStatus] = useState(null); // 'hit' | 'miss' | null
+  const [cacheStatus, setCacheStatus] = useState(null);
 
-  const loadCurrentISM = useCallback(async (classId) => {
+  const loadCurrentISM = useCallback(async () => {
     setLoading(true);
     setError(null);
     setCacheStatus(null);
-    setLoadingMessage(`Fetching ISM ${classId} baseline...`);
-    const url = `/api/ism/${classId}`;
+    setLoadingMessage("Fetching current ISM PROTECTED baseline...");
     try {
-      const cached = await cacheGet(url);
+      const cached = await cacheGet(URL);
       if (cached && isFresh(cached, CACHE_TTL_MS)) {
         setCurrentData(cached.body);
         setCacheStatus("hit");
@@ -27,16 +27,16 @@ export function useCurrentISM(classification) {
       const headers = {};
       if (cached?.etag) headers["If-None-Match"] = cached.etag;
 
-      const resp = await fetch(url, { headers });
+      const resp = await fetch(URL, { headers });
       if (resp.status === 304 && cached) {
-        await cachePut(url, { ...cached, cachedAt: Date.now() });
+        await cachePut(URL, { ...cached, cachedAt: Date.now() });
         setCurrentData(cached.body);
         setCacheStatus("hit");
         return;
       }
       if (!resp.ok) throw new Error(`Failed to fetch: ${resp.status} ${resp.statusText}`);
       const data = await resp.json();
-      await cachePut(url, {
+      await cachePut(URL, {
         body: data,
         etag: resp.headers.get("x-upstream-etag") || resp.headers.get("etag") || "",
         lastModified:
@@ -56,8 +56,8 @@ export function useCurrentISM(classification) {
   }, []);
 
   useEffect(() => {
-    loadCurrentISM(classification);
-  }, [classification, loadCurrentISM]);
+    loadCurrentISM();
+  }, [loadCurrentISM]);
 
   return { currentData, loading, error, loadingMessage, setError, cacheStatus };
 }

@@ -1,16 +1,7 @@
 const GITHUB_BASE =
   "https://raw.githubusercontent.com/AustralianCyberSecurityCentre/ism-oscal/main";
 
-const PROFILES = new Set([
-  "NON_CLASSIFIED",
-  "OFFICIAL_SENSITIVE",
-  "PROTECTED",
-  "SECRET",
-  "TOP_SECRET",
-  "E8_ML1",
-  "E8_ML2",
-  "E8_ML3",
-]);
+const PROFILES = new Set(["PROTECTED"]);
 
 export default {
   async fetch(request, env, ctx) {

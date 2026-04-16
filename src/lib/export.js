@@ -5,7 +5,7 @@ import {
   getControlGuideline,
   getControlRevision,
 } from "./oscal.js";
-import { CLASSIFICATIONS } from "../theme.js";
+import { PROTECTED_PROFILE } from "../theme.js";
 
 function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -16,19 +16,15 @@ function triggerDownload(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-function classificationLabel(id) {
-  return CLASSIFICATIONS.find((c) => c.id === id)?.label || id;
-}
-
 function controlLine(c) {
   return `${c.id}\t${c.title || ""}\t${c.groupTitle}\t${getControlDescription(c)}`;
 }
 
-export function exportGapReport(analysis, classification, currentData, previousData) {
+export function exportGapReport(analysis, currentData, previousData) {
   if (!analysis) return;
   const lines = [
     `ISM Gap Analysis Report`,
-    `Classification: ${classificationLabel(classification)}`,
+    `Classification: ${PROTECTED_PROFILE.label}`,
     `Generated: ${new Date().toISOString()}`,
     `Current Version: ${getCatalogVersion(currentData) || "unknown"}`,
     `Current Published: ${getCatalogPublished(currentData) || "unknown"}`,
@@ -50,14 +46,14 @@ export function exportGapReport(analysis, classification, currentData, previousD
     ...(analysis.modifiedControls ?? []).map((p) => controlLine(p.current)),
   ];
   const blob = new Blob([lines.join("\n")], { type: "text/plain" });
-  triggerDownload(blob, `ism-gap-report-${classification}-${Date.now()}.txt`);
+  triggerDownload(blob, `ism-gap-report-PROTECTED-${Date.now()}.txt`);
 }
 
 function csvEscape(value) {
   return `"${String(value ?? "").replace(/"/g, '""')}"`;
 }
 
-export function exportCSV(analysis, classification) {
+export function exportCSV(analysis) {
   if (!analysis) return;
   const header = [
     "Control ID",
@@ -92,10 +88,10 @@ export function exportCSV(analysis, classification) {
     ...analysis.unchangedControls.map((c) => row(c, "UNCHANGED")),
   ];
   const blob = new Blob([rows.join("\n")], { type: "text/csv" });
-  triggerDownload(blob, `ism-gap-analysis-${classification}-${Date.now()}.csv`);
+  triggerDownload(blob, `ism-gap-analysis-PROTECTED-${Date.now()}.csv`);
 }
 
-export function exportJSON(analysis, classification, currentData, previousData) {
+export function exportJSON(analysis, currentData, previousData) {
   if (!analysis) return;
 
   const shape = (c, status, extras = {}) => ({
@@ -114,8 +110,8 @@ export function exportJSON(analysis, classification, currentData, previousData) 
   const report = {
     reportVersion: 1,
     generated: new Date().toISOString(),
-    classification,
-    classificationLabel: classificationLabel(classification),
+    classification: PROTECTED_PROFILE.id,
+    classificationLabel: PROTECTED_PROFILE.label,
     currentVersion: getCatalogVersion(currentData),
     currentPublished: getCatalogPublished(currentData),
     previousVersion: getCatalogVersion(previousData),
@@ -146,5 +142,5 @@ export function exportJSON(analysis, classification, currentData, previousData) 
   };
 
   const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
-  triggerDownload(blob, `ism-gap-report-${classification}-${Date.now()}.json`);
+  triggerDownload(blob, `ism-gap-report-PROTECTED-${Date.now()}.json`);
 }
