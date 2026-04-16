@@ -29,7 +29,7 @@ export default function ISMGapAnalyser() {
   const [previousJson, setPreviousJson] = useState(null);
   const [uploadError, setUploadError] = useState(null);
 
-  const { currentData, loading, error, loadingMessage } = useCurrentISM(classification);
+  const { currentData, loading, error, loadingMessage, cacheStatus } = useCurrentISM(classification);
   const analysis = useGapAnalysis(currentData, previousData);
 
   const handleFileUpload = useCallback((e) => {
@@ -182,7 +182,7 @@ export default function ISMGapAnalyser() {
 
         {analysis && !loading && (
           <>
-            <VersionBanner currentData={currentData} previousData={previousData} />
+            <VersionBanner currentData={currentData} previousData={previousData} cacheStatus={cacheStatus} />
             <StatsGrid analysis={analysis} />
             {previousData && <CoverageChart analysis={analysis} />}
 
