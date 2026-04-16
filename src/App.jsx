@@ -242,6 +242,7 @@ export default function ISMGapAnalyser() {
               onToggleExpand={toggleExpand}
               modifiedByCurrentId={analysis.modifiedByCurrentId}
               onShowGuideline={guidelineSections ? showGuideline : null}
+              guidelineSections={guidelineSections}
             />
           </>
         )}
