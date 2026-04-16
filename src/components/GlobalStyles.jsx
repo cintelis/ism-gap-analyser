@@ -25,6 +25,16 @@ export function GlobalStyles() {
         .app-header p { font-size: 11px !important; }
       }
 
+      /* Guideline drawer prose */
+      .guideline-body p { margin-bottom: 12px; }
+      .guideline-body ul, .guideline-body ol { margin: 8px 0 12px 20px; }
+      .guideline-body li { margin-bottom: 4px; }
+      .guideline-body a { color: #F59E0B; text-decoration: none; }
+      .guideline-body a:hover { text-decoration: underline; }
+      .guideline-body h4 { font-size: 14px; font-weight: 600; color: #E2E8F0; margin: 16px 0 6px; }
+      .guideline-body table { border-collapse: collapse; margin: 8px 0; width: 100%; }
+      .guideline-body td, .guideline-body th { border: 1px solid #252A42; padding: 6px 10px; font-size: 13px; }
+
       /* Print: strip dark theme, expand cards, hide chrome */
       @media print {
         @page { margin: 18mm; }

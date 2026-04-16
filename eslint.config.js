@@ -5,7 +5,7 @@ import globals from "globals";
 import prettier from "eslint-config-prettier";
 
 export default [
-  { ignores: ["dist/", "node_modules/", ".wrangler/", "coverage/"] },
+  { ignores: ["dist/", "node_modules/", ".wrangler/", "coverage/", "scripts/"] },
   js.configs.recommended,
   {
     files: ["**/*.{js,jsx}"],

@@ -19,6 +19,8 @@ import { Toolbar } from "./components/Toolbar.jsx";
 import { ControlsList } from "./components/ControlsList.jsx";
 import { Spinner } from "./components/Spinner.jsx";
 import { GlobalStyles } from "./components/GlobalStyles.jsx";
+import { GuidelineDrawer } from "./components/GuidelineDrawer.jsx";
+import { useGuidelines } from "./hooks/useGuidelines.js";
 
 export default function ISMGapAnalyser() {
   const [filterMode, setFilterMode] = usePersistedState("filterMode", "all");
@@ -33,6 +35,17 @@ export default function ISMGapAnalyser() {
 
   const { currentData, loading, error, loadingMessage, cacheStatus } = useCurrentISM();
   const analysis = useGapAnalysis(currentData, previousData);
+  const { sections: guidelineSections } = useGuidelines();
+  const [activeGuideline, setActiveGuideline] = useState(null);
+
+  const showGuideline = useCallback(
+    (groupTitle) => {
+      if (!guidelineSections) return;
+      const entry = guidelineSections[groupTitle];
+      if (entry) setActiveGuideline(entry);
+    },
+    [guidelineSections]
+  );
 
   const handleFileUpload = useCallback((e) => {
     const file = e.target.files?.[0];
@@ -228,12 +241,18 @@ export default function ISMGapAnalyser() {
               expandedIds={expandedIds}
               onToggleExpand={toggleExpand}
               modifiedByCurrentId={analysis.modifiedByCurrentId}
+              onShowGuideline={guidelineSections ? showGuideline : null}
             />
           </>
         )}
 
         <Footer />
       </div>
+
+      <GuidelineDrawer
+        guideline={activeGuideline}
+        onClose={() => setActiveGuideline(null)}
+      />
     </div>
   );
 }

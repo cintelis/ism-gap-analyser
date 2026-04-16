@@ -2,7 +2,7 @@ import { palette } from "../theme.js";
 import { Badge } from "./Badge.jsx";
 import { ControlCard } from "./ControlCard.jsx";
 
-export function ControlsList({ groups, expandedIds, onToggleExpand, modifiedByCurrentId }) {
+export function ControlsList({ groups, expandedIds, onToggleExpand, modifiedByCurrentId, onShowGuideline }) {
   if (groups.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: 60, color: palette.textDim }}>
@@ -48,6 +48,29 @@ export function ControlsList({ groups, expandedIds, onToggleExpand, modifiedByCu
             )}
             {group.modified?.length > 0 && (
               <Badge color={palette.yellow}>{group.modified.length} modified</Badge>
+            )}
+            {onShowGuideline && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShowGuideline(group.title);
+                }}
+                aria-label={`Show guideline for ${group.title}`}
+                title="Show ASD guideline"
+                style={{
+                  background: "transparent",
+                  border: `1px solid ${palette.border}`,
+                  color: palette.cyan,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  padding: "2px 8px",
+                  borderRadius: 4,
+                  marginLeft: "auto",
+                }}
+              >
+                ⓘ
+              </button>
             )}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
