@@ -5,6 +5,8 @@ const FILTERS = [
   { id: "new", label: "New (Gap)" },
   { id: "modified", label: "Modified" },
   { id: "removed", label: "Removed" },
+  { id: "unassessed", label: "Unassessed" },
+  { id: "review-needed", label: "Re-review", conditional: true },
 ];
 
 export function Toolbar({
@@ -21,6 +23,7 @@ export function Toolbar({
   onExportAssessment,
   onImportAssessment,
   assessmentCount = 0,
+  reviewNeededCount = 0,
 }) {
   return (
     <div
@@ -54,26 +57,31 @@ export function Toolbar({
           fontFamily: "inherit",
         }}
       />
-      <div style={{ display: "flex", gap: 4 }} role="group" aria-label="Filter controls">
-        {FILTERS.map((f) => (
-          <button
-            key={f.id}
-            onClick={() => onFilterChange(f.id)}
-            aria-pressed={filterMode === f.id}
-            style={{
-              background: filterMode === f.id ? palette.accent + "18" : "transparent",
-              border: `1px solid ${filterMode === f.id ? palette.accent : palette.border}`,
-              color: filterMode === f.id ? palette.accent : palette.textMuted,
-              padding: "6px 12px",
-              borderRadius: 4,
-              fontSize: 12,
-              fontWeight: 500,
-              cursor: "pointer",
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }} role="group" aria-label="Filter controls">
+        {FILTERS.filter((f) => !f.conditional || reviewNeededCount > 0).map((f) => {
+          const isActive = filterMode === f.id;
+          const countSuffix = f.id === "review-needed" && reviewNeededCount > 0 ? ` (${reviewNeededCount})` : "";
+          return (
+            <button
+              key={f.id}
+              onClick={() => onFilterChange(f.id)}
+              aria-pressed={isActive}
+              style={{
+                background: isActive ? palette.accent + "18" : "transparent",
+                border: `1px solid ${isActive ? palette.accent : palette.border}`,
+                color: isActive ? palette.accent : palette.textMuted,
+                padding: "6px 12px",
+                borderRadius: 4,
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              {f.label}
+              {countSuffix}
+            </button>
+          );
+        })}
       </div>
       <div style={{ display: "flex", gap: 4 }}>
         <GhostButton onClick={onExpandAll}>Expand All</GhostButton>

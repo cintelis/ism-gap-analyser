@@ -20,9 +20,12 @@ import { ControlsList } from "./components/ControlsList.jsx";
 import { Spinner } from "./components/Spinner.jsx";
 import { GlobalStyles } from "./components/GlobalStyles.jsx";
 import { GuidelineDrawer } from "./components/GuidelineDrawer.jsx";
+import { ProgressDashboard } from "./components/ProgressDashboard.jsx";
+import { ReviewAlert } from "./components/ReviewAlert.jsx";
 import { useGuidelines } from "./hooks/useGuidelines.js";
 import { useAssessments } from "./hooks/useAssessments.js";
 import { downloadAssessment, parseAssessmentFile, mergeAssessments } from "./lib/assessmentsIO.js";
+import { countByStatus } from "./lib/assessments.js";
 
 export default function ISMGapAnalyser() {
   const [filterMode, setFilterMode] = usePersistedState("filterMode", "all");
@@ -52,6 +55,12 @@ export default function ISMGapAnalyser() {
   );
 
   const assessmentCount = useMemo(() => Object.keys(assessments || {}).length, [assessments]);
+  const assessmentCounts = useMemo(() => countByStatus(assessments), [assessments]);
+
+  const reviewNeededCount = useMemo(() => {
+    if (!analysis?.modifiedControls) return 0;
+    return analysis.modifiedControls.filter((p) => assessments?.[p.current.id]?.status).length;
+  }, [analysis, assessments]);
 
   const exportAssessment = useCallback(() => {
     if (!assessmentCount) {
@@ -183,20 +192,34 @@ export default function ISMGapAnalyser() {
           getControlDescription(c).toLowerCase().includes(term)
       );
     };
-    const showBucket = (name) => filterMode === "all" || filterMode === name;
+    const passesMode = (c, bucket) => {
+      if (filterMode === "all") return true;
+      if (filterMode === "new" || filterMode === "removed" || filterMode === "modified") {
+        return bucket === filterMode;
+      }
+      if (filterMode === "unassessed") return !assessments?.[c.id]?.status;
+      if (filterMode === "review-needed") {
+        return bucket === "modified" && !!assessments?.[c.id]?.status;
+      }
+      return true;
+    };
+
     return analysis.groups
       .map((group) => ({
         ...group,
-        new: showBucket("new") ? filterControls(group.new) : [],
-        removed: showBucket("removed") ? filterControls(group.removed) : [],
-        modified: showBucket("modified") ? filterControls(group.modified ?? []) : [],
-        unchanged: filterMode === "all" ? filterControls(group.unchanged) : [],
+        new: filterControls(group.new).filter((c) => passesMode(c, "new")),
+        removed: filterControls(group.removed).filter((c) => passesMode(c, "removed")),
+        modified: filterControls(group.modified ?? []).filter((c) => passesMode(c, "modified")),
+        unchanged:
+          filterMode === "all" || filterMode === "unassessed"
+            ? filterControls(group.unchanged).filter((c) => passesMode(c, "unchanged"))
+            : [],
       }))
       .filter(
         (g) =>
           g.new.length + g.removed.length + (g.modified?.length ?? 0) + g.unchanged.length > 0
       );
-  }, [analysis, searchTerm, filterMode]);
+  }, [analysis, searchTerm, filterMode, assessments]);
 
   const combinedError = error || uploadError;
 
@@ -261,7 +284,18 @@ export default function ISMGapAnalyser() {
         {analysis && !loading && (
           <>
             <VersionBanner currentData={currentData} previousData={previousData} cacheStatus={cacheStatus} />
+            <ReviewAlert
+              count={reviewNeededCount}
+              onFilter={() => setFilterMode("review-needed")}
+            />
             <StatsGrid analysis={analysis} />
+            {assessmentCount > 0 && (
+              <ProgressDashboard
+                counts={assessmentCounts}
+                total={analysis.currentCount}
+                onFilterUnassessed={() => setFilterMode("unassessed")}
+              />
+            )}
             {previousData && <CoverageChart analysis={analysis} />}
 
             <Toolbar
@@ -278,6 +312,7 @@ export default function ISMGapAnalyser() {
               onExportAssessment={exportAssessment}
               onImportAssessment={triggerAssessmentImport}
               assessmentCount={assessmentCount}
+              reviewNeededCount={reviewNeededCount}
             />
 
             <input
