@@ -1,6 +1,7 @@
 const GITHUB_RAW = "https://raw.githubusercontent.com/AustralianCyberSecurityCentre/ism-oscal";
 const GITHUB_API_RELEASES =
   "https://api.github.com/repos/AustralianCyberSecurityCentre/ism-oscal/releases?per_page=100";
+const GITHUB_API_REPO = "https://api.github.com/repos/cintelis/ism-gap-analyser";
 const PROFILES = new Set(["PROTECTED"]);
 const SAFE_REF = /^[A-Za-z0-9._-]+$/;
 
@@ -28,6 +29,7 @@ const SECURITY_HEADERS = {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === "/api/repo-stats") return withJsonHeaders(await handleRepoStats(ctx));
     if (url.pathname === "/api/ism/releases") return withJsonHeaders(await handleReleases(ctx));
     if (url.pathname.startsWith("/api/ism/"))
       return withJsonHeaders(await handleISM(url, request, ctx));
@@ -125,6 +127,46 @@ async function handleReleases(ctx) {
       prerelease: !!r.prerelease,
       url: r.html_url,
     }));
+
+  const out = new Response(JSON.stringify(simplified), {
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "public, max-age=3600, s-maxage=3600",
+      "access-control-allow-origin": "*",
+    },
+  });
+  ctx.waitUntil(cache.put(cacheKey, out.clone()));
+  return out;
+}
+
+async function handleRepoStats(ctx) {
+  const cache = caches.default;
+  const cacheKey = new Request("https://ism-gap-analyser.cache/repo-stats");
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
+
+  let resp;
+  try {
+    resp = await fetch(GITHUB_API_REPO, {
+      headers: {
+        "user-agent": "ism-gap-analyser-worker",
+        accept: "application/vnd.github+json",
+      },
+      cf: { cacheTtl: 3600, cacheEverything: true },
+    });
+  } catch (err) {
+    return json({ error: "GitHub API fetch failed", detail: String(err) }, 502);
+  }
+  if (!resp.ok) return json({ error: "GitHub API error", status: resp.status }, 502);
+
+  const data = await resp.json();
+  const simplified = {
+    stars: data.stargazers_count ?? 0,
+    forks: data.forks_count ?? 0,
+    watchers: data.subscribers_count ?? 0,
+    openIssues: data.open_issues_count ?? 0,
+    url: data.html_url,
+  };
 
   const out = new Response(JSON.stringify(simplified), {
     headers: {

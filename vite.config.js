@@ -6,6 +6,12 @@ export default defineConfig({
   build: { outDir: "dist" },
   server: {
     proxy: {
+      "/api/repo-stats": {
+        target: "https://api.github.com",
+        changeOrigin: true,
+        rewrite: () => "/repos/cintelis/ism-gap-analyser",
+        headers: { "user-agent": "ism-gap-analyser-dev" },
+      },
       "/api/ism/releases": {
         target: "https://api.github.com",
         changeOrigin: true,
