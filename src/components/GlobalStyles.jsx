@@ -17,6 +17,12 @@ export function GlobalStyles() {
         border-color: #3A4166 !important;
       }
 
+      /* Header GitHub link hover */
+      a[aria-label="View source on GitHub"]:hover {
+        color: #E2E8F0 !important;
+        border-color: #F59E0B !important;
+      }
+
       /* Mobile layout — below 540px, tighten padding and shrink text */
       @media (max-width: 540px) {
         .app-container { padding: 16px !important; }
