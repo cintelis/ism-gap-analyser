@@ -3,6 +3,7 @@ import { palette } from "../theme.js";
 const FILTERS = [
   { id: "all", label: "All" },
   { id: "new", label: "New (Gap)" },
+  { id: "modified", label: "Modified" },
   { id: "removed", label: "Removed" },
 ];
 
@@ -15,9 +16,12 @@ export function Toolbar({
   onCollapseAll,
   onExportTxt,
   onExportCsv,
+  onExportJson,
+  onPrint,
 }) {
   return (
     <div
+      data-print-hide
       style={{
         display: "flex",
         flexWrap: "wrap",
@@ -75,6 +79,8 @@ export function Toolbar({
       <div style={{ display: "flex", gap: 4 }}>
         <GhostButton onClick={onExportTxt}>Export TXT</GhostButton>
         <GhostButton onClick={onExportCsv}>Export CSV</GhostButton>
+        <GhostButton onClick={onExportJson}>Export JSON</GhostButton>
+        <GhostButton onClick={onPrint}>Print / PDF</GhostButton>
       </div>
     </div>
   );

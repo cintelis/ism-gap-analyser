@@ -1,12 +1,19 @@
 import { palette } from "../theme.js";
 import { Badge } from "./Badge.jsx";
+import { ControlDiff } from "./ControlDiff.jsx";
 import { getControlDescription, getControlGuideline, getControlRevision } from "../lib/oscal.js";
 
-export function ControlCard({ control, isNew, isRemoved, expanded, onToggle }) {
+export function ControlCard({ control, isNew, isRemoved, isModified, previousControl, expanded, onToggle }) {
   const desc = getControlDescription(control);
   const revision = getControlRevision(control);
   const guideline = getControlGuideline(control);
-  const accentBorder = isNew ? palette.green : isRemoved ? palette.red : palette.border;
+  const accentBorder = isNew
+    ? palette.green
+    : isRemoved
+      ? palette.red
+      : isModified
+        ? palette.yellow
+        : palette.border;
 
   return (
     <div
@@ -22,7 +29,7 @@ export function ControlCard({ control, isNew, isRemoved, expanded, onToggle }) {
       }}
       style={{
         background: palette.surface,
-        border: `1px solid ${accentBorder + (isNew || isRemoved ? "44" : "")}`,
+        border: `1px solid ${accentBorder + (isNew || isRemoved || isModified ? "44" : "")}`,
         borderLeft: `3px solid ${accentBorder}`,
         borderRadius: 6,
         padding: "12px 16px",
@@ -45,6 +52,7 @@ export function ControlCard({ control, isNew, isRemoved, expanded, onToggle }) {
           </span>
           {isNew && <Badge color={palette.green}>NEW</Badge>}
           {isRemoved && <Badge color={palette.red}>REMOVED</Badge>}
+          {isModified && <Badge color={palette.yellow}>MODIFIED</Badge>}
           {revision && (
             <Badge color={palette.textDim} outline>
               {revision}
@@ -73,12 +81,18 @@ export function ControlCard({ control, isNew, isRemoved, expanded, onToggle }) {
 
       {expanded && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${palette.border}` }}>
-          {desc && (
-            <Section label="Statement" marginBottom={guideline ? 12 : 0}>
-              {desc}
-            </Section>
+          {isModified && previousControl ? (
+            <ControlDiff previous={previousControl} current={control} />
+          ) : (
+            <>
+              {desc && (
+                <Section label="Statement" marginBottom={guideline ? 12 : 0}>
+                  {desc}
+                </Section>
+              )}
+              {guideline && <Section label="Guideline">{guideline}</Section>}
+            </>
           )}
-          {guideline && <Section label="Guideline">{guideline}</Section>}
           {control.props && control.props.length > 0 && (
             <div style={{ marginTop: 12 }}>
               <SectionLabel>Properties</SectionLabel>

@@ -6,6 +6,7 @@ export function StatsGrid({ analysis }) {
     { label: "Previous Controls", value: analysis.previousCount, color: palette.purple },
     { label: "New (Gap)", value: analysis.newCount, color: palette.green },
     { label: "Removed", value: analysis.removedCount, color: palette.red },
+    { label: "Modified", value: analysis.modifiedCount ?? 0, color: palette.yellow },
     { label: "Unchanged", value: analysis.unchangedCount, color: palette.textDim },
   ];
 

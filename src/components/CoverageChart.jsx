@@ -3,6 +3,7 @@ import { palette } from "../theme.js";
 export function CoverageChart({ analysis }) {
   if (analysis.currentCount === 0) return null;
   const unchangedPct = (analysis.unchangedCount / analysis.currentCount) * 100;
+  const modifiedPct = ((analysis.modifiedCount ?? 0) / analysis.currentCount) * 100;
   const newPct = (analysis.newCount / analysis.currentCount) * 100;
 
   return (
@@ -38,6 +39,9 @@ export function CoverageChart({ analysis }) {
       >
         {analysis.unchangedCount > 0 && (
           <Segment width={unchangedPct} color={palette.blue} bg={palette.blue + "55"} label="COVERED" />
+        )}
+        {(analysis.modifiedCount ?? 0) > 0 && (
+          <Segment width={modifiedPct} color={palette.yellow} bg={palette.yellow + "33"} label="CHANGED" />
         )}
         {analysis.newCount > 0 && (
           <Segment width={newPct} color={palette.green} bg={palette.green + "33"} label="GAP" />

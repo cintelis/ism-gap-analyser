@@ -2,7 +2,7 @@ import { palette } from "../theme.js";
 import { Badge } from "./Badge.jsx";
 import { ControlCard } from "./ControlCard.jsx";
 
-export function ControlsList({ groups, expandedIds, onToggleExpand }) {
+export function ControlsList({ groups, expandedIds, onToggleExpand, modifiedByCurrentId }) {
   if (groups.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: 60, color: palette.textDim }}>
@@ -40,11 +40,14 @@ export function ControlsList({ groups, expandedIds, onToggleExpand }) {
               {group.title}
             </h3>
             <span style={{ fontSize: 11, color: palette.textDim }}>
-              {group.new.length + group.removed.length + group.unchanged.length} controls
+              {group.new.length + group.removed.length + (group.modified?.length ?? 0) + group.unchanged.length} controls
             </span>
             {group.new.length > 0 && <Badge color={palette.green}>{group.new.length} new</Badge>}
             {group.removed.length > 0 && (
               <Badge color={palette.red}>{group.removed.length} removed</Badge>
+            )}
+            {group.modified?.length > 0 && (
+              <Badge color={palette.yellow}>{group.modified.length} modified</Badge>
             )}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -62,6 +65,16 @@ export function ControlsList({ groups, expandedIds, onToggleExpand }) {
                 key={c.id}
                 control={c}
                 isRemoved
+                expanded={expandedIds.has(c.id)}
+                onToggle={() => onToggleExpand(c.id)}
+              />
+            ))}
+            {(group.modified ?? []).map((c) => (
+              <ControlCard
+                key={c.id}
+                control={c}
+                isModified
+                previousControl={modifiedByCurrentId?.get(c.id)}
                 expanded={expandedIds.has(c.id)}
                 onToggle={() => onToggleExpand(c.id)}
               />

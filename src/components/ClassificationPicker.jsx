@@ -3,6 +3,7 @@ import { palette, ALL_PROFILES } from "../theme.js";
 export function ClassificationPicker({ classification, onChange }) {
   return (
     <div
+      data-print-hide
       style={{
         background: palette.surface,
         border: `1px solid ${palette.border}`,

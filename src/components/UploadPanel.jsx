@@ -7,6 +7,7 @@ export function UploadPanel({ previousJson, onUpload, onSample, onClear, sampleE
 
   return (
     <div
+      data-print-hide
       style={{
         background: palette.surface,
         border: `1px solid ${palette.border}`,

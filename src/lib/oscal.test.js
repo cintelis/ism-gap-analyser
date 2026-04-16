@@ -7,6 +7,7 @@ import {
   getCatalogVersion,
   getCatalogPublished,
   groupControlsBySection,
+  isControlModified,
 } from "./oscal.js";
 
 const sampleCatalog = {
@@ -121,18 +122,84 @@ describe("getCatalogVersion / getCatalogPublished", () => {
 });
 
 describe("groupControlsBySection", () => {
-  it("groups controls by groupTitle with new/removed/unchanged buckets", () => {
+  it("groups controls by groupTitle with new/removed/modified/unchanged buckets", () => {
     const ctrl = (id, groupTitle) => ({ id, groupTitle });
     const groups = groupControlsBySection(
       [ctrl("a", "G1")],
       [ctrl("b", "G2")],
-      [ctrl("c", "G1")]
+      [ctrl("c", "G1")],
+      [{ previous: ctrl("d", "G1"), current: ctrl("d", "G1") }]
     );
     expect(groups).toHaveLength(2);
     const g1 = groups.find((g) => g.title === "G1");
     const g2 = groups.find((g) => g.title === "G2");
     expect(g1.new).toHaveLength(1);
     expect(g1.unchanged).toHaveLength(1);
+    expect(g1.modified).toHaveLength(1);
     expect(g2.removed).toHaveLength(1);
+  });
+});
+
+describe("isControlModified", () => {
+  const base = {
+    title: "T",
+    parts: [
+      { name: "statement", prose: "S" },
+      { name: "guideline", prose: "G" },
+    ],
+    props: [{ name: "revision", value: "A" }],
+  };
+
+  it("returns false when content is identical", () => {
+    expect(isControlModified(base, { ...base })).toBe(false);
+  });
+
+  it("detects title change", () => {
+    expect(isControlModified(base, { ...base, title: "T2" })).toBe(true);
+  });
+
+  it("detects statement change", () => {
+    const changed = {
+      ...base,
+      parts: [
+        { name: "statement", prose: "S2" },
+        { name: "guideline", prose: "G" },
+      ],
+    };
+    expect(isControlModified(base, changed)).toBe(true);
+  });
+
+  it("detects guideline change", () => {
+    const changed = {
+      ...base,
+      parts: [
+        { name: "statement", prose: "S" },
+        { name: "guideline", prose: "G2" },
+      ],
+    };
+    expect(isControlModified(base, changed)).toBe(true);
+  });
+
+  it("detects props change", () => {
+    const changed = { ...base, props: [{ name: "revision", value: "B" }] };
+    expect(isControlModified(base, changed)).toBe(true);
+  });
+
+  it("ignores prop order", () => {
+    const ordered = {
+      ...base,
+      props: [
+        { name: "a", value: "1" },
+        { name: "b", value: "2" },
+      ],
+    };
+    const reordered = {
+      ...base,
+      props: [
+        { name: "b", value: "2" },
+        { name: "a", value: "1" },
+      ],
+    };
+    expect(isControlModified(ordered, reordered)).toBe(false);
   });
 });

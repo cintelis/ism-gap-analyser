@@ -14,6 +14,8 @@ export const palette = {
   blue: "#3B82F6",
   purple: "#8B5CF6",
   cyan: "#06B6D4",
+  amber: "#F59E0B",
+  yellow: "#EAB308",
 };
 
 export const CLASSIFICATIONS = [

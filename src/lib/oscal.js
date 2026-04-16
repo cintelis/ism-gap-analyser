@@ -89,15 +89,33 @@ export function getCatalogPublished(catalog) {
   );
 }
 
-export function groupControlsBySection(newCtrls, removedCtrls, unchangedCtrls) {
+function propsSignature(control) {
+  if (!control.props) return "";
+  return control.props
+    .map((p) => `${p.name}=${p.ns ?? ""}=${p.value ?? ""}=${p.class ?? ""}`)
+    .sort()
+    .join("|");
+}
+
+export function isControlModified(previous, current) {
+  if ((previous.title || "") !== (current.title || "")) return true;
+  if (getControlDescription(previous) !== getControlDescription(current)) return true;
+  if (getControlGuideline(previous) !== getControlGuideline(current)) return true;
+  if (propsSignature(previous) !== propsSignature(current)) return true;
+  return false;
+}
+
+export function groupControlsBySection(newCtrls, removedCtrls, unchangedCtrls, modifiedCtrls = []) {
   const groups = {};
   const addToGroup = (ctrl, type) => {
     const key = ctrl.groupTitle || "Ungrouped";
-    if (!groups[key]) groups[key] = { title: key, new: [], removed: [], unchanged: [] };
+    if (!groups[key])
+      groups[key] = { title: key, new: [], removed: [], modified: [], unchanged: [] };
     groups[key][type].push(ctrl);
   };
   newCtrls.forEach((c) => addToGroup(c, "new"));
   removedCtrls.forEach((c) => addToGroup(c, "removed"));
+  modifiedCtrls.forEach((pair) => addToGroup(pair.current, "modified"));
   unchangedCtrls.forEach((c) => addToGroup(c, "unchanged"));
   return Object.values(groups).sort((a, b) => a.title.localeCompare(b.title));
 }
