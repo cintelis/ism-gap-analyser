@@ -10,7 +10,8 @@ import { buildSamplePrevious } from "./lib/sample.js";
 import { Header } from "./components/Header.jsx";
 import { Footer } from "./components/Footer.jsx";
 import { ClassificationBanner } from "./components/ClassificationBanner.jsx";
-import { UploadPanel } from "./components/UploadPanel.jsx";
+import { PreviousBaselinePanel } from "./components/PreviousBaselinePanel.jsx";
+import { fetchBaseline } from "./lib/fetchBaseline.js";
 import { VersionBanner } from "./components/VersionBanner.jsx";
 import { StatsGrid } from "./components/StatsGrid.jsx";
 import { CoverageChart } from "./components/CoverageChart.jsx";
@@ -27,6 +28,8 @@ export default function ISMGapAnalyser() {
   const [previousData, setPreviousData] = useState(null);
   const [previousJson, setPreviousJson] = useState(null);
   const [uploadError, setUploadError] = useState(null);
+  const [selectLoading, setSelectLoading] = useState(false);
+  const [selectError, setSelectError] = useState(null);
 
   const { currentData, loading, error, loadingMessage, cacheStatus } = useCurrentISM();
   const analysis = useGapAnalysis(currentData, previousData);
@@ -53,11 +56,28 @@ export default function ISMGapAnalyser() {
     if (!sample) return;
     setPreviousData(sample);
     setPreviousJson("sample-previous.json (simulated)");
+    setSelectError(null);
   }, [currentData]);
 
   const clearPrevious = useCallback(() => {
     setPreviousData(null);
     setPreviousJson(null);
+    setSelectError(null);
+  }, []);
+
+  const loadRelease = useCallback(async (tag) => {
+    setSelectLoading(true);
+    setSelectError(null);
+    setUploadError(null);
+    try {
+      const { data } = await fetchBaseline(tag);
+      setPreviousData(data);
+      setPreviousJson(`ism-oscal@${tag}`);
+    } catch (err) {
+      setSelectError(`Failed to load release ${tag}: ${err.message}`);
+    } finally {
+      setSelectLoading(false);
+    }
   }, []);
 
   const toggleExpand = useCallback(
@@ -146,12 +166,15 @@ export default function ISMGapAnalyser() {
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 32px" }}>
         <ClassificationBanner />
 
-        <UploadPanel
-          previousJson={previousJson}
+        <PreviousBaselinePanel
+          previousLabel={previousJson}
+          onSelectRelease={loadRelease}
           onUpload={handleFileUpload}
           onSample={loadSamplePrevious}
           onClear={clearPrevious}
           sampleEnabled={!!currentData}
+          selectLoading={selectLoading}
+          selectError={selectError}
         />
 
         {loading && (

@@ -6,12 +6,21 @@ export default defineConfig({
   build: { outDir: "dist" },
   server: {
     proxy: {
-      "/api/ism": {
+      "/api/ism/releases": {
+        target: "https://api.github.com",
+        changeOrigin: true,
+        rewrite: () => "/repos/AustralianCyberSecurityCentre/ism-oscal/releases?per_page=100",
+        headers: { "user-agent": "ism-gap-analyser-dev" },
+      },
+      "^/api/ism/[^/]+$": {
         target: "https://raw.githubusercontent.com",
         changeOrigin: true,
         rewrite: (path) => {
-          const profile = path.replace(/^\/api\/ism\//, "");
-          return `/AustralianCyberSecurityCentre/ism-oscal/main/ISM_${profile}-baseline-resolved-profile_catalog.json`;
+          const [bare, query = ""] = path.split("?");
+          const profile = bare.replace(/^\/api\/ism\//, "");
+          const params = new URLSearchParams(query);
+          const ref = params.get("ref") || "main";
+          return `/AustralianCyberSecurityCentre/ism-oscal/${ref}/ISM_${profile}-baseline-resolved-profile_catalog.json`;
         },
       },
     },

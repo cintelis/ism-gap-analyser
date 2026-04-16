@@ -1,8 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { cacheGet, cachePut, isFresh } from "../lib/idbCache.js";
-
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1h
-const URL = "/api/ism/PROTECTED";
+import { fetchBaseline } from "../lib/fetchBaseline.js";
 
 export function useCurrentISM() {
   const [currentData, setCurrentData] = useState(null);
@@ -17,34 +14,9 @@ export function useCurrentISM() {
     setCacheStatus(null);
     setLoadingMessage("Fetching current ISM PROTECTED baseline...");
     try {
-      const cached = await cacheGet(URL);
-      if (cached && isFresh(cached, CACHE_TTL_MS)) {
-        setCurrentData(cached.body);
-        setCacheStatus("hit");
-        return;
-      }
-
-      const headers = {};
-      if (cached?.etag) headers["If-None-Match"] = cached.etag;
-
-      const resp = await fetch(URL, { headers });
-      if (resp.status === 304 && cached) {
-        await cachePut(URL, { ...cached, cachedAt: Date.now() });
-        setCurrentData(cached.body);
-        setCacheStatus("hit");
-        return;
-      }
-      if (!resp.ok) throw new Error(`Failed to fetch: ${resp.status} ${resp.statusText}`);
-      const data = await resp.json();
-      await cachePut(URL, {
-        body: data,
-        etag: resp.headers.get("x-upstream-etag") || resp.headers.get("etag") || "",
-        lastModified:
-          resp.headers.get("x-upstream-last-modified") || resp.headers.get("last-modified") || "",
-        cachedAt: Date.now(),
-      });
+      const { data, cacheStatus: status } = await fetchBaseline("main");
       setCurrentData(data);
-      setCacheStatus("miss");
+      setCacheStatus(status);
     } catch (err) {
       setError(
         `Failed to load current ISM: ${err.message}. Check your network connection and try again.`
