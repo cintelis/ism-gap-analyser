@@ -1,17 +1,40 @@
 import { palette } from "../theme.js";
 
-export function Header() {
+export function Header({ navigate, currentPath = "/" }) {
+  const linkTarget = currentPath.startsWith("/irap-guide") ? "/" : "/irap-guide";
+  const linkLabel = currentPath.startsWith("/irap-guide") ? "← Back to Dashboard" : "IRAP Process Guide →";
+
   return (
     <div
       className="app-header"
+      data-print-hide
       style={{
         background: `linear-gradient(135deg, ${palette.surface} 0%, ${palette.bg} 100%)`,
         borderBottom: `1px solid ${palette.border}`,
         padding: "24px 32px",
       }}
     >
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <a
+          href="/"
+          onClick={(e) => {
+            if (navigate) {
+              e.preventDefault();
+              navigate("/");
+            }
+          }}
+          style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}
+        >
           <div
             style={{
               width: 36,
@@ -52,7 +75,29 @@ export function Header() {
               Australian Information Security Manual · OSCAL Control Gap Analysis
             </p>
           </div>
-        </div>
+        </a>
+        {navigate && (
+          <a
+            href={linkTarget}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(linkTarget);
+            }}
+            style={{
+              color: palette.accent,
+              fontSize: 13,
+              fontWeight: 600,
+              textDecoration: "none",
+              padding: "6px 14px",
+              borderRadius: 5,
+              border: `1px solid ${palette.accent}44`,
+              background: palette.accent + "14",
+              letterSpacing: "0.02em",
+            }}
+          >
+            {linkLabel}
+          </a>
+        )}
       </div>
     </div>
   );

@@ -24,3 +24,4 @@ npm-debug.log*
 # Agent scratch
 .agent-instructions/
 .claude/
+.research/

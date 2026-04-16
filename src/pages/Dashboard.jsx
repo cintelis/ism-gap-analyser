@@ -1,0 +1,357 @@
+import { useCallback, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
+import { palette } from "../theme.js";
+import { usePersistedState, usePersistedSet } from "../hooks/usePersistedState.js";
+import { useCurrentISM } from "../hooks/useCurrentISM.js";
+import { useGapAnalysis } from "../hooks/useGapAnalysis.js";
+import { getControlDescription } from "../lib/oscal.js";
+import { exportGapReport, exportCSV, exportJSON } from "../lib/export.js";
+import { buildSamplePrevious } from "../lib/sample.js";
+import { Header } from "../components/Header.jsx";
+import { Footer } from "../components/Footer.jsx";
+import { ClassificationBanner } from "../components/ClassificationBanner.jsx";
+import { PreviousBaselinePanel } from "../components/PreviousBaselinePanel.jsx";
+import { fetchBaseline } from "../lib/fetchBaseline.js";
+import { VersionBanner } from "../components/VersionBanner.jsx";
+import { StatsGrid } from "../components/StatsGrid.jsx";
+import { CoverageChart } from "../components/CoverageChart.jsx";
+import { Toolbar } from "../components/Toolbar.jsx";
+import { ControlsList } from "../components/ControlsList.jsx";
+import { Spinner } from "../components/Spinner.jsx";
+import { GlobalStyles } from "../components/GlobalStyles.jsx";
+import { GuidelineDrawer } from "../components/GuidelineDrawer.jsx";
+import { ProgressDashboard } from "../components/ProgressDashboard.jsx";
+import { ReviewAlert } from "../components/ReviewAlert.jsx";
+import { useGuidelines } from "../hooks/useGuidelines.js";
+import { useAssessments } from "../hooks/useAssessments.js";
+import { downloadAssessment, parseAssessmentFile, mergeAssessments } from "../lib/assessmentsIO.js";
+import { countByStatus } from "../lib/assessments.js";
+
+export default function ISMGapAnalyser({ navigate } = {}) {
+  const [filterMode, setFilterMode] = usePersistedState("filterMode", "all");
+  const [expandedIds, setExpandedIds] = usePersistedSet("expandedIds");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [previousData, setPreviousData] = useState(null);
+  const [previousJson, setPreviousJson] = useState(null);
+  const [uploadError, setUploadError] = useState(null);
+  const [selectLoading, setSelectLoading] = useState(false);
+  const [selectError, setSelectError] = useState(null);
+
+  const { currentData, loading, error, loadingMessage, cacheStatus } = useCurrentISM();
+  const analysis = useGapAnalysis(currentData, previousData);
+  const { sections: guidelineSections } = useGuidelines();
+  const [activeGuideline, setActiveGuideline] = useState(null);
+  const { assessments, update: updateAssessment, replaceAll: replaceAssessments } = useAssessments();
+  const importInputRef = useRef(null);
+
+  const showGuideline = useCallback(
+    (groupTitle) => {
+      if (!guidelineSections) return;
+      const entry = guidelineSections[groupTitle];
+      if (entry) setActiveGuideline(entry);
+    },
+    [guidelineSections]
+  );
+
+  const assessmentCount = useMemo(() => Object.keys(assessments || {}).length, [assessments]);
+  const assessmentCounts = useMemo(() => countByStatus(assessments), [assessments]);
+
+  const reviewNeededCount = useMemo(() => {
+    if (!analysis?.modifiedControls) return 0;
+    return analysis.modifiedControls.filter((p) => assessments?.[p.current.id]?.status).length;
+  }, [analysis, assessments]);
+
+  const exportAssessment = useCallback(() => {
+    if (!assessmentCount) {
+      setUploadError("No assessment data yet — mark some controls first.");
+      return;
+    }
+    downloadAssessment(assessments);
+  }, [assessments, assessmentCount]);
+
+  const handleAssessmentFile = useCallback(
+    (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const incoming = parseAssessmentFile(ev.target.result);
+          const confirmMsg =
+            assessmentCount > 0
+              ? `Merge ${Object.keys(incoming).length} imported entries with your existing ${assessmentCount} assessments? Newer timestamps win on conflict.`
+              : `Import ${Object.keys(incoming).length} assessment entries?`;
+          if (!window.confirm(confirmMsg)) return;
+          replaceAssessments(mergeAssessments(assessments, incoming));
+          setUploadError(null);
+        } catch (err) {
+          setUploadError(`Assessment import failed: ${err.message}`);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = "";
+    },
+    [assessments, assessmentCount, replaceAssessments]
+  );
+
+  const triggerAssessmentImport = useCallback(() => importInputRef.current?.click(), []);
+
+  const handleFileUpload = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        setPreviousData(data);
+        setPreviousJson(file.name);
+        setUploadError(null);
+      } catch (err) {
+        setUploadError(`Failed to parse JSON: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+  }, []);
+
+  const loadSamplePrevious = useCallback(() => {
+    const sample = buildSamplePrevious(currentData);
+    if (!sample) return;
+    setPreviousData(sample);
+    setPreviousJson("sample-previous.json (simulated)");
+    setSelectError(null);
+  }, [currentData]);
+
+  const clearPrevious = useCallback(() => {
+    setPreviousData(null);
+    setPreviousJson(null);
+    setSelectError(null);
+  }, []);
+
+  const loadRelease = useCallback(async (tag) => {
+    setSelectLoading(true);
+    setSelectError(null);
+    setUploadError(null);
+    try {
+      const { data } = await fetchBaseline(tag);
+      setPreviousData(data);
+      setPreviousJson(`ism-oscal@${tag}`);
+    } catch (err) {
+      setSelectError(`Failed to load release ${tag}: ${err.message}`);
+    } finally {
+      setSelectLoading(false);
+    }
+  }, []);
+
+  const toggleExpand = useCallback(
+    (id) => {
+      setExpandedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+    },
+    [setExpandedIds]
+  );
+
+  const expandAll = useCallback(() => {
+    if (!analysis) return;
+    const allIds = new Set();
+    analysis.groups.forEach((g) => {
+      [...g.new, ...g.removed, ...(g.modified ?? []), ...g.unchanged].forEach((c) =>
+        allIds.add(c.id)
+      );
+    });
+    setExpandedIds(allIds);
+  }, [analysis, setExpandedIds]);
+
+  const collapseAll = useCallback(() => setExpandedIds(new Set()), [setExpandedIds]);
+
+  const printReport = useCallback(() => {
+    if (!analysis) return;
+    const all = new Set();
+    analysis.groups.forEach((g) => {
+      [...g.new, ...g.removed, ...(g.modified ?? []), ...g.unchanged].forEach((c) =>
+        all.add(c.id)
+      );
+    });
+    flushSync(() => setExpandedIds(all));
+    window.print();
+  }, [analysis, setExpandedIds]);
+
+  const filteredGroups = useMemo(() => {
+    if (!analysis) return [];
+    const term = searchTerm.toLowerCase().trim();
+    const filterControls = (ctrls) => {
+      if (!term) return ctrls;
+      return ctrls.filter(
+        (c) =>
+          c.id?.toLowerCase().includes(term) ||
+          c.title?.toLowerCase().includes(term) ||
+          getControlDescription(c).toLowerCase().includes(term)
+      );
+    };
+    const STATUS_MODES = new Set(["implemented", "alternate", "not_implemented", "not_applicable"]);
+
+    const passesMode = (c, bucket) => {
+      if (filterMode === "all") return true;
+      if (filterMode === "new" || filterMode === "removed" || filterMode === "modified") {
+        return bucket === filterMode;
+      }
+      if (filterMode === "unassessed") return !assessments?.[c.id]?.status;
+      if (filterMode === "review-needed") {
+        return bucket === "modified" && !!assessments?.[c.id]?.status;
+      }
+      if (STATUS_MODES.has(filterMode)) return assessments?.[c.id]?.status === filterMode;
+      return true;
+    };
+
+    return analysis.groups
+      .map((group) => {
+        const isStatusMode = STATUS_MODES.has(filterMode) || filterMode === "unassessed";
+        return {
+          ...group,
+          new: filterControls(group.new).filter((c) => passesMode(c, "new")),
+          removed: filterControls(group.removed).filter((c) => passesMode(c, "removed")),
+          modified: filterControls(group.modified ?? []).filter((c) => passesMode(c, "modified")),
+          unchanged:
+            filterMode === "all" || isStatusMode
+              ? filterControls(group.unchanged).filter((c) => passesMode(c, "unchanged"))
+              : [],
+        };
+      })
+      .filter(
+        (g) =>
+          g.new.length + g.removed.length + (g.modified?.length ?? 0) + g.unchanged.length > 0
+      );
+  }, [analysis, searchTerm, filterMode, assessments]);
+
+  const combinedError = error || uploadError;
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: palette.bg,
+        color: palette.text,
+        fontFamily: "'DM Sans', 'Segoe UI', system-ui, sans-serif",
+      }}
+    >
+      <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+
+      <GlobalStyles />
+      <Header navigate={navigate} currentPath="/" />
+
+      <div className="app-container" style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 32px" }}>
+        <ClassificationBanner />
+
+        <PreviousBaselinePanel
+          previousLabel={previousJson}
+          onSelectRelease={loadRelease}
+          onUpload={handleFileUpload}
+          onSample={loadSamplePrevious}
+          onClear={clearPrevious}
+          sampleEnabled={!!currentData}
+          selectLoading={selectLoading}
+          selectError={selectError}
+        />
+
+        {loading && (
+          <div
+            style={{ display: "flex", alignItems: "center", gap: 12, padding: 20, color: palette.textMuted }}
+            role="status"
+            aria-live="polite"
+          >
+            <Spinner /> <span>{loadingMessage || "Loading..."}</span>
+          </div>
+        )}
+
+        {combinedError && (
+          <div
+            role="alert"
+            style={{
+              background: palette.red + "12",
+              border: `1px solid ${palette.red}33`,
+              borderRadius: 8,
+              padding: 16,
+              marginBottom: 20,
+              fontSize: 13,
+              color: palette.red,
+            }}
+          >
+            {combinedError}
+          </div>
+        )}
+
+        {analysis && !loading && (
+          <>
+            <VersionBanner currentData={currentData} previousData={previousData} cacheStatus={cacheStatus} />
+            <ReviewAlert
+              count={reviewNeededCount}
+              onFilter={() => setFilterMode("review-needed")}
+            />
+            <StatsGrid analysis={analysis} />
+            {assessmentCount > 0 && (
+              <ProgressDashboard
+                counts={assessmentCounts}
+                total={analysis.currentCount}
+                onFilterUnassessed={() => setFilterMode("unassessed")}
+                onFilterStatus={(id) => setFilterMode(id)}
+                activeStatusFilter={filterMode}
+              />
+            )}
+            {previousData && <CoverageChart analysis={analysis} />}
+
+            <Toolbar
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              filterMode={filterMode}
+              onFilterChange={setFilterMode}
+              onExpandAll={expandAll}
+              onCollapseAll={collapseAll}
+              onExportTxt={() => exportGapReport(analysis, currentData, previousData, assessments)}
+              onExportCsv={() => exportCSV(analysis, assessments)}
+              onExportJson={() => exportJSON(analysis, currentData, previousData, assessments)}
+              onPrint={printReport}
+              onExportAssessment={exportAssessment}
+              onImportAssessment={triggerAssessmentImport}
+              assessmentCount={assessmentCount}
+              reviewNeededCount={reviewNeededCount}
+            />
+
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".json,application/json"
+              onChange={handleAssessmentFile}
+              style={{ display: "none" }}
+              aria-label="Import assessment JSON"
+            />
+
+            <ControlsList
+              groups={filteredGroups}
+              expandedIds={expandedIds}
+              onToggleExpand={toggleExpand}
+              modifiedByCurrentId={analysis.modifiedByCurrentId}
+              onShowGuideline={guidelineSections ? showGuideline : null}
+              guidelineSections={guidelineSections}
+              assessments={assessments}
+              onUpdateAssessment={updateAssessment}
+            />
+          </>
+        )}
+
+        <Footer />
+      </div>
+
+      <GuidelineDrawer
+        guideline={activeGuideline}
+        onClose={() => setActiveGuideline(null)}
+      />
+    </div>
+  );
+}
