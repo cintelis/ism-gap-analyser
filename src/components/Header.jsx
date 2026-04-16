@@ -3,6 +3,7 @@ import { palette } from "../theme.js";
 export function Header() {
   return (
     <div
+      className="app-header"
       style={{
         background: `linear-gradient(135deg, ${palette.surface} 0%, ${palette.bg} 100%)`,
         borderBottom: `1px solid ${palette.border}`,

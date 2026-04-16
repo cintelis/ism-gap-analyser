@@ -27,6 +27,7 @@ export function ControlCard({ control, isNew, isRemoved, isModified, previousCon
           onToggle();
         }
       }}
+      className="control-card"
       style={{
         background: palette.surface,
         border: `1px solid ${accentBorder + (isNew || isRemoved || isModified ? "44" : "")}`,
@@ -50,9 +51,9 @@ export function ControlCard({ control, isNew, isRemoved, isModified, previousCon
           >
             {control.id}
           </span>
-          {isNew && <Badge color={palette.green}>NEW</Badge>}
-          {isRemoved && <Badge color={palette.red}>REMOVED</Badge>}
-          {isModified && <Badge color={palette.yellow}>MODIFIED</Badge>}
+          {isNew && <Badge color={palette.green}>+ NEW</Badge>}
+          {isRemoved && <Badge color={palette.red}>− REMOVED</Badge>}
+          {isModified && <Badge color={palette.yellow}>± MODIFIED</Badge>}
           {revision && (
             <Badge color={palette.textDim} outline>
               {revision}

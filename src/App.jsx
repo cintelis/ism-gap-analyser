@@ -18,7 +18,7 @@ import { CoverageChart } from "./components/CoverageChart.jsx";
 import { Toolbar } from "./components/Toolbar.jsx";
 import { ControlsList } from "./components/ControlsList.jsx";
 import { Spinner } from "./components/Spinner.jsx";
-import { PrintStyles } from "./components/PrintStyles.jsx";
+import { GlobalStyles } from "./components/GlobalStyles.jsx";
 
 export default function ISMGapAnalyser() {
   const [filterMode, setFilterMode] = usePersistedState("filterMode", "all");
@@ -160,10 +160,10 @@ export default function ISMGapAnalyser() {
         rel="stylesheet"
       />
 
-      <PrintStyles />
+      <GlobalStyles />
       <Header />
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 32px" }}>
+      <div className="app-container" style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 32px" }}>
         <ClassificationBanner />
 
         <PreviousBaselinePanel

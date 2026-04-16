@@ -4,14 +4,59 @@ const GITHUB_API_RELEASES =
 const PROFILES = new Set(["PROTECTED"]);
 const SAFE_REF = /^[A-Za-z0-9._-]+$/;
 
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data:",
+  "connect-src 'self'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "base-uri 'self'",
+].join("; ");
+
+const SECURITY_HEADERS = {
+  "content-security-policy": CSP,
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  "x-frame-options": "DENY",
+};
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (url.pathname === "/api/ism/releases") return handleReleases(ctx);
-    if (url.pathname.startsWith("/api/ism/")) return handleISM(url, request, ctx);
-    return env.ASSETS.fetch(request);
+    if (url.pathname === "/api/ism/releases") return withJsonHeaders(await handleReleases(ctx));
+    if (url.pathname.startsWith("/api/ism/"))
+      return withJsonHeaders(await handleISM(url, request, ctx));
+    const assetResp = await env.ASSETS.fetch(request);
+    return withAssetHeaders(assetResp, url);
   },
 };
+
+function withAssetHeaders(resp, url) {
+  const headers = new Headers(resp.headers);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) headers.set(k, v);
+
+  // Vite emits hashed filenames under /assets/. Treat as immutable.
+  if (url.pathname.startsWith("/assets/")) {
+    headers.set("cache-control", "public, max-age=31536000, immutable");
+  } else {
+    // index.html / other routes (SPA) — revalidate so users get the latest build
+    headers.set("cache-control", "public, max-age=0, must-revalidate");
+  }
+
+  return new Response(resp.body, { status: resp.status, statusText: resp.statusText, headers });
+}
+
+function withJsonHeaders(resp) {
+  const headers = new Headers(resp.headers);
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("referrer-policy", "strict-origin-when-cross-origin");
+  return new Response(resp.body, { status: resp.status, statusText: resp.statusText, headers });
+}
 
 async function handleISM(url, request, ctx) {
   const profile = url.pathname.slice("/api/ism/".length);
