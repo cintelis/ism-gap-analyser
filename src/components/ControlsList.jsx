@@ -2,7 +2,16 @@ import { palette } from "../theme.js";
 import { Badge } from "./Badge.jsx";
 import { ControlCard } from "./ControlCard.jsx";
 
-export function ControlsList({ groups, expandedIds, onToggleExpand, modifiedByCurrentId, onShowGuideline, guidelineSections }) {
+export function ControlsList({
+  groups,
+  expandedIds,
+  onToggleExpand,
+  modifiedByCurrentId,
+  onShowGuideline,
+  guidelineSections,
+  assessments,
+  onUpdateAssessment,
+}) {
   if (groups.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: 60, color: palette.textDim }}>
@@ -81,6 +90,8 @@ export function ControlsList({ groups, expandedIds, onToggleExpand, modifiedByCu
                 isNew
                 expanded={expandedIds.has(c.id)}
                 onToggle={() => onToggleExpand(c.id)}
+                assessment={assessments?.[c.id]}
+                onUpdateAssessment={onUpdateAssessment}
               />
             ))}
             {group.removed.map((c) => (
@@ -90,6 +101,8 @@ export function ControlsList({ groups, expandedIds, onToggleExpand, modifiedByCu
                 isRemoved
                 expanded={expandedIds.has(c.id)}
                 onToggle={() => onToggleExpand(c.id)}
+                assessment={assessments?.[c.id]}
+                onUpdateAssessment={onUpdateAssessment}
               />
             ))}
             {(group.modified ?? []).map((c) => (
@@ -100,6 +113,8 @@ export function ControlsList({ groups, expandedIds, onToggleExpand, modifiedByCu
                 previousControl={modifiedByCurrentId?.get(c.id)}
                 expanded={expandedIds.has(c.id)}
                 onToggle={() => onToggleExpand(c.id)}
+                assessment={assessments?.[c.id]}
+                onUpdateAssessment={onUpdateAssessment}
               />
             ))}
             {group.unchanged.map((c) => (
@@ -108,6 +123,8 @@ export function ControlsList({ groups, expandedIds, onToggleExpand, modifiedByCu
                 control={c}
                 expanded={expandedIds.has(c.id)}
                 onToggle={() => onToggleExpand(c.id)}
+                assessment={assessments?.[c.id]}
+                onUpdateAssessment={onUpdateAssessment}
               />
             ))}
           </div>

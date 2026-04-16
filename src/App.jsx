@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { palette } from "./theme.js";
 import { usePersistedState, usePersistedSet } from "./hooks/usePersistedState.js";
@@ -21,6 +21,8 @@ import { Spinner } from "./components/Spinner.jsx";
 import { GlobalStyles } from "./components/GlobalStyles.jsx";
 import { GuidelineDrawer } from "./components/GuidelineDrawer.jsx";
 import { useGuidelines } from "./hooks/useGuidelines.js";
+import { useAssessments } from "./hooks/useAssessments.js";
+import { downloadAssessment, parseAssessmentFile, mergeAssessments } from "./lib/assessmentsIO.js";
 
 export default function ISMGapAnalyser() {
   const [filterMode, setFilterMode] = usePersistedState("filterMode", "all");
@@ -37,6 +39,8 @@ export default function ISMGapAnalyser() {
   const analysis = useGapAnalysis(currentData, previousData);
   const { sections: guidelineSections } = useGuidelines();
   const [activeGuideline, setActiveGuideline] = useState(null);
+  const { assessments, update: updateAssessment, replaceAll: replaceAssessments } = useAssessments();
+  const importInputRef = useRef(null);
 
   const showGuideline = useCallback(
     (groupTitle) => {
@@ -46,6 +50,43 @@ export default function ISMGapAnalyser() {
     },
     [guidelineSections]
   );
+
+  const assessmentCount = useMemo(() => Object.keys(assessments || {}).length, [assessments]);
+
+  const exportAssessment = useCallback(() => {
+    if (!assessmentCount) {
+      setUploadError("No assessment data yet — mark some controls first.");
+      return;
+    }
+    downloadAssessment(assessments);
+  }, [assessments, assessmentCount]);
+
+  const handleAssessmentFile = useCallback(
+    (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const incoming = parseAssessmentFile(ev.target.result);
+          const confirmMsg =
+            assessmentCount > 0
+              ? `Merge ${Object.keys(incoming).length} imported entries with your existing ${assessmentCount} assessments? Newer timestamps win on conflict.`
+              : `Import ${Object.keys(incoming).length} assessment entries?`;
+          if (!window.confirm(confirmMsg)) return;
+          replaceAssessments(mergeAssessments(assessments, incoming));
+          setUploadError(null);
+        } catch (err) {
+          setUploadError(`Assessment import failed: ${err.message}`);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = "";
+    },
+    [assessments, assessmentCount, replaceAssessments]
+  );
+
+  const triggerAssessmentImport = useCallback(() => importInputRef.current?.click(), []);
 
   const handleFileUpload = useCallback((e) => {
     const file = e.target.files?.[0];
@@ -230,10 +271,22 @@ export default function ISMGapAnalyser() {
               onFilterChange={setFilterMode}
               onExpandAll={expandAll}
               onCollapseAll={collapseAll}
-              onExportTxt={() => exportGapReport(analysis, currentData, previousData)}
-              onExportCsv={() => exportCSV(analysis)}
-              onExportJson={() => exportJSON(analysis, currentData, previousData)}
+              onExportTxt={() => exportGapReport(analysis, currentData, previousData, assessments)}
+              onExportCsv={() => exportCSV(analysis, assessments)}
+              onExportJson={() => exportJSON(analysis, currentData, previousData, assessments)}
               onPrint={printReport}
+              onExportAssessment={exportAssessment}
+              onImportAssessment={triggerAssessmentImport}
+              assessmentCount={assessmentCount}
+            />
+
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".json,application/json"
+              onChange={handleAssessmentFile}
+              style={{ display: "none" }}
+              aria-label="Import assessment JSON"
             />
 
             <ControlsList
@@ -243,6 +296,8 @@ export default function ISMGapAnalyser() {
               modifiedByCurrentId={analysis.modifiedByCurrentId}
               onShowGuideline={guidelineSections ? showGuideline : null}
               guidelineSections={guidelineSections}
+              assessments={assessments}
+              onUpdateAssessment={updateAssessment}
             />
           </>
         )}

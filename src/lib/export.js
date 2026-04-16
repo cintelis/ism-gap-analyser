@@ -5,6 +5,7 @@ import {
   getControlGuideline,
   getControlRevision,
 } from "./oscal.js";
+import { getStatusMeta } from "./assessments.js";
 import { PROTECTED_PROFILE } from "../theme.js";
 
 function triggerDownload(blob, filename) {
@@ -16,11 +17,20 @@ function triggerDownload(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-function controlLine(c) {
-  return `${c.id}\t${c.title || ""}\t${c.groupTitle}\t${getControlDescription(c)}`;
+function controlLine(c, status) {
+  return `${c.id}\t${c.title || ""}\t${c.groupTitle}\t${status || ""}\t${getControlDescription(c)}`;
 }
 
-export function exportGapReport(analysis, currentData, previousData) {
+function statusOf(assessments, id) {
+  const s = assessments?.[id]?.status;
+  return s ? getStatusMeta(s)?.label || s : "";
+}
+
+function notesOf(assessments, id) {
+  return assessments?.[id]?.notes || "";
+}
+
+export function exportGapReport(analysis, currentData, previousData, assessments = {}) {
   if (!analysis) return;
   const lines = [
     `ISM Gap Analysis Report`,
@@ -37,13 +47,15 @@ export function exportGapReport(analysis, currentData, previousData) {
     `Unchanged: ${analysis.unchangedCount}`,
     ``,
     `=== NEW CONTROLS (GAP) ===`,
-    ...analysis.newControls.map(controlLine),
+    ...analysis.newControls.map((c) => controlLine(c, statusOf(assessments, c.id))),
     ``,
     `=== REMOVED CONTROLS ===`,
-    ...analysis.removedControls.map(controlLine),
+    ...analysis.removedControls.map((c) => controlLine(c, statusOf(assessments, c.id))),
     ``,
     `=== MODIFIED CONTROLS ===`,
-    ...(analysis.modifiedControls ?? []).map((p) => controlLine(p.current)),
+    ...(analysis.modifiedControls ?? []).map((p) =>
+      controlLine(p.current, statusOf(assessments, p.current.id))
+    ),
   ];
   const blob = new Blob([lines.join("\n")], { type: "text/plain" });
   triggerDownload(blob, `ism-gap-report-PROTECTED-${Date.now()}.txt`);
@@ -53,13 +65,15 @@ function csvEscape(value) {
   return `"${String(value ?? "").replace(/"/g, '""')}"`;
 }
 
-export function exportCSV(analysis) {
+export function exportCSV(analysis, assessments = {}) {
   if (!analysis) return;
   const header = [
     "Control ID",
     "Title",
     "Group",
     "Status",
+    "Assessment",
+    "Evidence/Notes",
     "Revision",
     "Description",
     "Guideline",
@@ -73,6 +87,8 @@ export function exportCSV(analysis) {
       csvEscape(c.title || ""),
       csvEscape(c.groupTitle),
       status,
+      csvEscape(statusOf(assessments, c.id)),
+      csvEscape(notesOf(assessments, c.id)),
       csvEscape(getControlRevision(c)),
       csvEscape(getControlDescription(c)),
       csvEscape(getControlGuideline(c)),
@@ -91,21 +107,27 @@ export function exportCSV(analysis) {
   triggerDownload(blob, `ism-gap-analysis-PROTECTED-${Date.now()}.csv`);
 }
 
-export function exportJSON(analysis, currentData, previousData) {
+export function exportJSON(analysis, currentData, previousData, assessments = {}) {
   if (!analysis) return;
 
-  const shape = (c, status, extras = {}) => ({
-    id: c.id,
-    status,
-    title: c.title || null,
-    group: c.groupTitle,
-    groupId: c.groupId,
-    revision: getControlRevision(c),
-    statement: getControlDescription(c),
-    guideline: getControlGuideline(c),
-    props: c.props || [],
-    ...extras,
-  });
+  const shape = (c, status, extras = {}) => {
+    const a = assessments?.[c.id];
+    return {
+      id: c.id,
+      status,
+      title: c.title || null,
+      group: c.groupTitle,
+      groupId: c.groupId,
+      revision: getControlRevision(c),
+      statement: getControlDescription(c),
+      guideline: getControlGuideline(c),
+      props: c.props || [],
+      assessment: a
+        ? { status: a.status, notes: a.notes, updatedAt: a.updatedAt }
+        : null,
+      ...extras,
+    };
+  };
 
   const report = {
     reportVersion: 1,
@@ -123,6 +145,9 @@ export function exportJSON(analysis, currentData, previousData) {
       removed: analysis.removedCount,
       modified: analysis.modifiedCount ?? 0,
       unchanged: analysis.unchangedCount,
+    },
+    assessmentSummary: {
+      total: Object.keys(assessments || {}).length,
     },
     controls: [
       ...analysis.newControls.map((c) => shape(c, "NEW")),

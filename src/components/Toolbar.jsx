@@ -18,6 +18,9 @@ export function Toolbar({
   onExportCsv,
   onExportJson,
   onPrint,
+  onExportAssessment,
+  onImportAssessment,
+  assessmentCount = 0,
 }) {
   return (
     <div
@@ -82,6 +85,16 @@ export function Toolbar({
         <GhostButton onClick={onExportJson}>Export JSON</GhostButton>
         <GhostButton onClick={onPrint}>Print / PDF</GhostButton>
       </div>
+      {(onExportAssessment || onImportAssessment) && (
+        <div style={{ display: "flex", gap: 4, marginLeft: "auto" }}>
+          {onImportAssessment && <GhostButton onClick={onImportAssessment}>Import Assessment</GhostButton>}
+          {onExportAssessment && (
+            <GhostButton onClick={onExportAssessment}>
+              Export Assessment{assessmentCount ? ` (${assessmentCount})` : ""}
+            </GhostButton>
+          )}
+        </div>
+      )}
     </div>
   );
 }

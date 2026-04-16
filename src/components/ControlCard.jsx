@@ -1,9 +1,21 @@
 import { palette } from "../theme.js";
 import { Badge } from "./Badge.jsx";
 import { ControlDiff } from "./ControlDiff.jsx";
+import { AssessmentPanel } from "./AssessmentPanel.jsx";
+import { AssessmentBadge } from "./AssessmentBadge.jsx";
 import { getControlDescription, getControlGuideline, getControlRevision } from "../lib/oscal.js";
 
-export function ControlCard({ control, isNew, isRemoved, isModified, previousControl, expanded, onToggle }) {
+export function ControlCard({
+  control,
+  isNew,
+  isRemoved,
+  isModified,
+  previousControl,
+  expanded,
+  onToggle,
+  assessment,
+  onUpdateAssessment,
+}) {
   const desc = getControlDescription(control);
   const revision = getControlRevision(control);
   const guideline = getControlGuideline(control);
@@ -59,6 +71,7 @@ export function ControlCard({ control, isNew, isRemoved, isModified, previousCon
               {revision}
             </Badge>
           )}
+          {assessment?.status && <AssessmentBadge statusId={assessment.status} />}
         </div>
         <span
           style={{
@@ -93,6 +106,13 @@ export function ControlCard({ control, isNew, isRemoved, isModified, previousCon
               )}
               {guideline && <Section label="Guideline">{guideline}</Section>}
             </>
+          )}
+          {onUpdateAssessment && !isRemoved && (
+            <AssessmentPanel
+              controlId={control.id}
+              assessment={assessment}
+              onUpdate={onUpdateAssessment}
+            />
           )}
           {control.props && control.props.length > 0 && (
             <div style={{ marginTop: 12 }}>
