@@ -1,4 +1,4 @@
-﻿@include ../_agent-instructions/ism-gap-analyser/AGENTS.orchestrator.md
+﻿@include ../_agent-instructions/ism-gap-analyser/AGENTS.frontend.md
 # ISM Gap Analyser — Agent Instructions
 
 ## Deployment
