@@ -21,7 +21,11 @@ coverage/
 *.log
 npm-debug.log*
 
-# Agent scratch
+# Agent scratch (local-only workflow files — don't publish to remote)
 .agent-instructions/
+_agent-instructions
+_agent-instructions.lnk
 .claude/
 .research/
+AGENTS.md
+CLAUDE.md
