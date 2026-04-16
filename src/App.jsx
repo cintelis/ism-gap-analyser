@@ -192,6 +192,8 @@ export default function ISMGapAnalyser() {
           getControlDescription(c).toLowerCase().includes(term)
       );
     };
+    const STATUS_MODES = new Set(["implemented", "alternate", "not_implemented", "not_applicable"]);
+
     const passesMode = (c, bucket) => {
       if (filterMode === "all") return true;
       if (filterMode === "new" || filterMode === "removed" || filterMode === "modified") {
@@ -201,20 +203,24 @@ export default function ISMGapAnalyser() {
       if (filterMode === "review-needed") {
         return bucket === "modified" && !!assessments?.[c.id]?.status;
       }
+      if (STATUS_MODES.has(filterMode)) return assessments?.[c.id]?.status === filterMode;
       return true;
     };
 
     return analysis.groups
-      .map((group) => ({
-        ...group,
-        new: filterControls(group.new).filter((c) => passesMode(c, "new")),
-        removed: filterControls(group.removed).filter((c) => passesMode(c, "removed")),
-        modified: filterControls(group.modified ?? []).filter((c) => passesMode(c, "modified")),
-        unchanged:
-          filterMode === "all" || filterMode === "unassessed"
-            ? filterControls(group.unchanged).filter((c) => passesMode(c, "unchanged"))
-            : [],
-      }))
+      .map((group) => {
+        const isStatusMode = STATUS_MODES.has(filterMode) || filterMode === "unassessed";
+        return {
+          ...group,
+          new: filterControls(group.new).filter((c) => passesMode(c, "new")),
+          removed: filterControls(group.removed).filter((c) => passesMode(c, "removed")),
+          modified: filterControls(group.modified ?? []).filter((c) => passesMode(c, "modified")),
+          unchanged:
+            filterMode === "all" || isStatusMode
+              ? filterControls(group.unchanged).filter((c) => passesMode(c, "unchanged"))
+              : [],
+        };
+      })
       .filter(
         (g) =>
           g.new.length + g.removed.length + (g.modified?.length ?? 0) + g.unchanged.length > 0
@@ -294,6 +300,8 @@ export default function ISMGapAnalyser() {
                 counts={assessmentCounts}
                 total={analysis.currentCount}
                 onFilterUnassessed={() => setFilterMode("unassessed")}
+                onFilterStatus={(id) => setFilterMode(id)}
+                activeStatusFilter={filterMode}
               />
             )}
             {previousData && <CoverageChart analysis={analysis} />}

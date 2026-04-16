@@ -1,7 +1,7 @@
 import { palette } from "../theme.js";
 import { ASSESSMENT_STATUSES, getStatusMeta } from "../lib/assessments.js";
 
-export function ProgressDashboard({ counts, total, onFilterUnassessed }) {
+export function ProgressDashboard({ counts, total, onFilterUnassessed, onFilterStatus, activeStatusFilter }) {
   const assessed = counts.implemented + counts.alternate + counts.not_implemented + counts.not_applicable;
   const percent = total > 0 ? (assessed / total) * 100 : 0;
   const unassessed = Math.max(0, total - assessed);
@@ -77,15 +77,26 @@ export function ProgressDashboard({ counts, total, onFilterUnassessed }) {
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
         {ASSESSMENT_STATUSES.map((s) => {
           const n = counts[s.id] || 0;
+          const clickable = n > 0 && !!onFilterStatus;
+          const active = activeStatusFilter === s.id;
           return (
-            <span
+            <button
               key={s.id}
+              onClick={clickable ? () => onFilterStatus(s.id) : undefined}
+              disabled={!clickable}
+              aria-pressed={active}
+              title={clickable ? `Show only ${s.label}` : `${n} ${s.label}`}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
                 fontSize: 12,
+                padding: "4px 8px",
+                borderRadius: 4,
+                background: active ? s.color + "22" : "transparent",
+                border: `1px solid ${active ? s.color : "transparent"}`,
                 color: n > 0 ? palette.text : palette.textDim,
+                cursor: clickable ? "pointer" : "default",
               }}
             >
               <span
@@ -100,7 +111,7 @@ export function ProgressDashboard({ counts, total, onFilterUnassessed }) {
               />
               <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{n}</span>
               <span style={{ color: palette.textMuted }}>{s.label}</span>
-            </span>
+            </button>
           );
         })}
         {unassessed > 0 && (
