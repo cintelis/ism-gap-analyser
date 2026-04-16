@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#141829"/>
+      <stop offset="100%" stop-color="#0C0F1A"/>
+    </linearGradient>
+    <linearGradient id="logo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#B27108"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- subtle grid -->
+  <g stroke="#252A42" stroke-width="1" opacity="0.35">
+    <line x1="0" y1="210" x2="1200" y2="210"/>
+    <line x1="0" y1="420" x2="1200" y2="420"/>
+    <line x1="400" y1="0" x2="400" y2="630"/>
+    <line x1="800" y1="0" x2="800" y2="630"/>
+  </g>
+
+  <!-- logo tile -->
+  <rect x="80" y="80" width="110" height="110" rx="22" fill="url(#logo)"/>
+  <path d="M135 112 L172 170 L98 170 Z" fill="none" stroke="#0C0F1A" stroke-width="8" stroke-linejoin="round"/>
+
+  <!-- title -->
+  <text x="220" y="150" font-family="'DM Sans', 'Segoe UI', sans-serif" font-size="64" font-weight="700" fill="#E2E8F0" letter-spacing="-1.5">
+    ISM Gap Analyser
+  </text>
+  <text x="220" y="195" font-family="'DM Sans', 'Segoe UI', sans-serif" font-size="22" fill="#8B93B0" letter-spacing="1.5">
+    IRAP · PROTECTED · OSCAL CONTROL DIFF
+  </text>
+
+  <!-- body rows -->
+  <g font-family="'JetBrains Mono', 'Fira Code', monospace" font-size="26" font-weight="600">
+    <g transform="translate(100, 290)">
+      <rect x="0" y="-32" width="24" height="40" rx="3" fill="#10B981"/>
+      <text x="44" y="0" fill="#10B981">+  NEW controls</text>
+      <text x="360" y="0" fill="#E2E8F0" font-size="22" font-family="'DM Sans', sans-serif" font-weight="400">
+        gaps you need to address
+      </text>
+    </g>
+    <g transform="translate(100, 360)">
+      <rect x="0" y="-32" width="24" height="40" rx="3" fill="#EAB308"/>
+      <text x="44" y="0" fill="#EAB308">±  MODIFIED</text>
+      <text x="360" y="0" fill="#E2E8F0" font-size="22" font-family="'DM Sans', sans-serif" font-weight="400">
+        wording changes since last assessment
+      </text>
+    </g>
+    <g transform="translate(100, 430)">
+      <rect x="0" y="-32" width="24" height="40" rx="3" fill="#EF4444"/>
+      <text x="44" y="0" fill="#EF4444">−  REMOVED</text>
+      <text x="360" y="0" fill="#E2E8F0" font-size="22" font-family="'DM Sans', sans-serif" font-weight="400">
+        no longer required
+      </text>
+    </g>
+  </g>
+
+  <!-- footer -->
+  <text x="100" y="550" font-family="'DM Sans', sans-serif" font-size="20" fill="#5C6484" letter-spacing="1">
+    irap.cintelis.ai
+  </text>
+  <text x="1100" y="550" text-anchor="end" font-family="'DM Sans', sans-serif" font-size="20" fill="#5C6484" letter-spacing="1">
+    Source: ASD ISM OSCAL · CC BY 4.0
+  </text>
+</svg>
